@@ -1,4 +1,5 @@
 import AppKit
+import QuartzCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     // Tweak these to taste.
@@ -12,7 +13,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let backspaceFraction: CGFloat = 1.0 / 5.0 // backspace fills the top 1/5 of each piece
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
-    private let echoDelay: TimeInterval = 0.15 // red strips appear if no key follows space within this long
+    private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space within this long
+    private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
+    private let echoMaxDuration: TimeInterval = 3 // ...until the next key, or 3 s, whichever comes first
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
     private lazy var rightPiece = SidePiece(restColor: restColor)
@@ -25,6 +28,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let permissionItem = NSMenuItem(title: "Waiting for Input Monitoring permission…", action: nil, keyEquivalent: "")
     private var retryTimer: Timer?
     private var hesitationWork: DispatchWorkItem?
+    private var alarmLink: AnyObject? // CADisplayLink on macOS 14+
+    private var alarmTimer: Timer?    // fallback on older macOS
+    private var alarmFrame = 0
+    private var alarmStart: CFTimeInterval = 0
     private var isOn = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -42,9 +49,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Key handling
 
     private func handle(_ keyCode: Int64) {
-        // Any key press means you didn't stall after the last space.
+        // Any key press ends the wait after space, and stops the alarm if it's going.
         hesitationWork?.cancel()
         hesitationWork = nil
+        stopAlarm()
         guard isOn, let action = KeyMap.action(for: keyCode) else { return }
         switch action {
         case .left:
@@ -54,12 +62,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .space:
             leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
             rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
-            // Hesitation alarm: red strips only if no key follows within echoDelay.
+            // Hesitation alarm: if no key follows within echoDelay, the red strips
+            // blink until the next key press (or for at most echoMaxDuration).
             let work = DispatchWorkItem { [weak self] in
                 guard let self, self.isOn else { return }
                 self.hesitationWork = nil
-                self.leftEcho.flash(for: self.blinkDuration)
-                self.rightEcho.flash(for: self.blinkDuration)
+                self.startAlarm()
             }
             hesitationWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + echoDelay, execute: work)
@@ -67,6 +75,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             leftPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
             rightPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
         }
+    }
+
+    // MARK: - Hesitation alarm
+
+    /// Blinks the red strips: `echoFramesPerToggle` frames on, the same number off,
+    /// synced to the screen's refresh, until the next key press or `echoMaxDuration`.
+    private func startAlarm() {
+        stopAlarm()
+        alarmFrame = 0
+        alarmStart = CACurrentMediaTime()
+        setEchoLit(true)
+        if #available(macOS 14.0, *), let screen = NotchLayout.screen {
+            let link = screen.displayLink(target: self, selector: #selector(displayLinkTick(_:)))
+            link.add(to: .main, forMode: .common)
+            alarmLink = link
+        } else {
+            let timer = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+                self?.alarmTick()
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            alarmTimer = timer
+        }
+    }
+
+    private func stopAlarm() {
+        if #available(macOS 14.0, *) {
+            (alarmLink as? CADisplayLink)?.invalidate()
+        }
+        alarmLink = nil
+        alarmTimer?.invalidate()
+        alarmTimer = nil
+        setEchoLit(false)
+    }
+
+    @objc private func displayLinkTick(_ link: AnyObject) {
+        alarmTick()
+    }
+
+    /// Called once per frame while the alarm runs.
+    private func alarmTick() {
+        // You've stopped typing (finished a message, walked away): give up quietly.
+        if CACurrentMediaTime() - alarmStart >= echoMaxDuration {
+            stopAlarm()
+            return
+        }
+        alarmFrame += 1
+        setEchoLit((alarmFrame / echoFramesPerToggle) % 2 == 0)
+    }
+
+    private func setEchoLit(_ lit: Bool) {
+        leftEcho.setLit(lit)
+        rightEcho.setLit(lit)
     }
 
     // MARK: - On / off
@@ -81,12 +141,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if on {
             leftPiece.show()
             rightPiece.show()
+            leftEcho.show()
+            rightEcho.show()
             startTap()
         } else {
             retryTimer?.invalidate()
             retryTimer = nil
             permissionItem.isHidden = true
             keyTap.stop()
+            hesitationWork?.cancel()
+            hesitationWork = nil
+            stopAlarm()
             leftPiece.hide()
             rightPiece.hide()
             leftEcho.hide()

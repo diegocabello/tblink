@@ -86,31 +86,34 @@ final class SidePiece {
     }
 }
 
-/// A strip that is normally invisible and only appears for a moment when flashed.
+/// A strip that is normally see-through and lights up when told to.
+/// It stays on screen while tblink is on and switches by opacity,
+/// which is cheap enough to toggle every couple of frames.
 final class FlashStrip {
     private let panel: NSPanel
-    private var hideWork: DispatchWorkItem?
+    private var isLit = false
 
     init(color: NSColor) {
         panel = makeOverlayPanel(color: color)
+        panel.isOpaque = false
+        panel.alphaValue = 0
     }
 
     func place(at frame: NSRect) {
         panel.setFrame(frame, display: false)
     }
 
-    /// Shows the strip for `duration` seconds. A new flash restarts the timer.
-    func flash(for duration: TimeInterval) {
-        hideWork?.cancel()
-        panel.orderFrontRegardless()
-        let work = DispatchWorkItem { [weak self] in self?.panel.orderOut(nil) }
-        hideWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
-    }
+    func show() { panel.orderFrontRegardless() }
 
     func hide() {
-        hideWork?.cancel()
+        setLit(false)
         panel.orderOut(nil)
+    }
+
+    func setLit(_ lit: Bool) {
+        guard lit != isLit else { return }
+        isLit = lit
+        panel.alphaValue = lit ? 1 : 0
     }
 }
 
@@ -138,9 +141,14 @@ enum NotchLayout {
     /// Frames for the left and right pieces, each `width` points wide and as tall
     /// as the menu bar, flush against the camera notch. On a screen without a notch
     /// they sit at the top center with a notch-sized gap between them.
-    static func frames(width: CGFloat) -> (left: NSRect, right: NSRect)? {
+    /// The screen the pieces live on: the one with a notch, else the main screen.
+    static var screen: NSScreen? {
         let notched = NSScreen.screens.first { $0.safeAreaInsets.top > 0 }
-        guard let screen = notched ?? NSScreen.main ?? NSScreen.screens.first else { return nil }
+        return notched ?? NSScreen.main ?? NSScreen.screens.first
+    }
+
+    static func frames(width: CGFloat) -> (left: NSRect, right: NSRect)? {
+        guard let screen else { return nil }
         let f = screen.frame
 
         let height: CGFloat
