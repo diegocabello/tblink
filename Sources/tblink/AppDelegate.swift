@@ -2,24 +2,26 @@ import AppKit
 import QuartzCore
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    // Tweak these to taste.
+    // Tweak these to taste. Colors are Display P3, the widest range the built-in
+    // screen shows, so 1.0 means the most intense green/red/etc. it can produce.
+    // The hex notes are the same channel values; in P3 they're more saturated than web hex.
     private let pieceWidth: CGFloat = 50
     private let blinkDuration: TimeInterval = 0.05 // 1/20 s
-    private let restColor = NSColor(srgbRed: 0, green: 1, blue: 0, alpha: 1) // #00ff00
-    private let handColor = NSColor(srgbRed: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
-    private let spaceColor = NSColor(srgbRed: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
+    private let restColor = NSColor(displayP3Red: 0, green: 1, blue: 0, alpha: 1) // #00ff00
+    private let handColor = NSColor(displayP3Red: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
+    private let spaceColor = NSColor(displayP3Red: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
     private let spaceFraction: CGFloat = 1.0 / 5.0 // space fills the bottom 1/5 of each piece
-    private let backspaceColor = NSColor(srgbRed: 0, green: 0, blue: 1, alpha: 1) // #0000ff
+    private let backspaceColor = NSColor(displayP3Red: 0, green: 0, blue: 1, alpha: 1) // #0000ff
     private let backspaceFraction: CGFloat = 1.0 / 5.0 // backspace fills the top 1/5 of each piece
-    private let doubleColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00, both side strips
-    private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
+    private let doubleColor = NSColor(displayP3Red: 1, green: 1, blue: 0, alpha: 1) // #ffff00, both side strips
+    private let echoColor = NSColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
     private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows within this long (never after Return, Tab or arrows)
     private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
     private let echoMaxDuration: TimeInterval = 1 // ...until the next key, or 1 s, whichever comes first
-    private let typoColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00
+    private let typoColor = NSColor(displayP3Red: 1, green: 1, blue: 0, alpha: 1) // #ffff00
     private let typoDuration: TimeInterval = 0.05 // "space then . , ? !" lights the side strips this long
-    private let apostropheColor = NSColor(srgbRed: 0, green: 1, blue: 1, alpha: 1) // #00ffff, right side strip
+    private let apostropheColor = NSColor(displayP3Red: 0, green: 1, blue: 1, alpha: 1) // #00ffff, right side strip
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
     private lazy var rightPiece = SidePiece(restColor: restColor)

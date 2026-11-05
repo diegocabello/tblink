@@ -161,6 +161,8 @@ private func makeOverlayPanel(color: NSColor) -> NSPanel {
     panel.hidesOnDeactivate = false
     panel.isReleasedWhenClosed = false
     panel.backgroundColor = color
+    // Draw in Display P3 so the wide-gamut colors aren't clipped to sRGB.
+    panel.colorSpace = .displayP3
     return panel
 }
 
