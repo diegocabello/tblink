@@ -47,6 +47,13 @@ final class SidePiece {
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
     }
 
+    /// Ends a whole-block blink early, back to the rest color.
+    func endBlink() {
+        resetWork?.cancel()
+        resetWork = nil
+        panel.backgroundColor = restColor
+    }
+
     /// Fills the bottom `fraction` of the block.
     func blinkBottom(_ color: NSColor, fraction: CGFloat, for duration: TimeInterval) {
         bottomBand.blink(color, from: 0, to: fraction, in: panel.contentView, for: duration)

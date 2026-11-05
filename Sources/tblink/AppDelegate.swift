@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let spaceFraction: CGFloat = 1.0 / 5.0 // space fills the bottom 1/5 of each piece
     private let backspaceColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let backspaceFraction: CGFloat = 1.0 / 5.0 // backspace fills the top 1/5 of each piece
-    private let doubleColor = NSColor(srgbRed: 0, green: 1, blue: 1, alpha: 1) // #00ffff
+    private let doubleColor = NSColor(srgbRed: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
     private let doubleBand: (from: CGFloat, to: CGFloat) = (1.0 / 5.0, 4.0 / 5.0) // middle 3/5 of the block
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
@@ -62,15 +62,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard isOn, let action = KeyMap.action(for: keyCode) else { return }
         switch action {
         case .left:
-            leftPiece.blink(handColor, for: blinkDuration)
-            if isDouble {
-                leftPiece.blinkMiddle(doubleColor, from: doubleBand.from, to: doubleBand.to, for: blinkDuration)
-            }
+            blinkHand(leftPiece, isDouble: isDouble)
         case .right:
-            rightPiece.blink(handColor, for: blinkDuration)
-            if isDouble {
-                rightPiece.blinkMiddle(doubleColor, from: doubleBand.from, to: doubleBand.to, for: blinkDuration)
-            }
+            blinkHand(rightPiece, isDouble: isDouble)
         case .space:
             leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
             rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
@@ -79,6 +73,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             leftPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
             rightPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
             armHesitationAlarm()
+        }
+    }
+
+    /// A hand key blinks the whole block. The second press of a double blinks only
+    /// the middle band, leaving the top and bottom fifths green.
+    private func blinkHand(_ piece: SidePiece, isDouble: Bool) {
+        if isDouble {
+            piece.endBlink() // the first press may still be lighting the whole block
+            piece.blinkMiddle(doubleColor, from: doubleBand.from, to: doubleBand.to, for: blinkDuration)
+        } else {
+            piece.blink(handColor, for: blinkDuration)
         }
     }
 
