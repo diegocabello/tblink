@@ -18,7 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
     private let echoMaxDuration: TimeInterval = 1 // ...until the next key, or 1 s, whichever comes first
     private let typoColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00
-    private let typoDuration: TimeInterval = 0.15 // "space then . , ? !" lights the side strips this long
+    private let typoDuration: TimeInterval = 0.05 // "space then . , ? !" lights the side strips this long
     private let apostropheColor = NSColor(srgbRed: 0, green: 1, blue: 1, alpha: 1) // #00ffff, right side strip
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
@@ -63,11 +63,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let afterSpace = lastKeyCode == KeyMap.space
         lastKeyCode = keyCode
         guard isOn, let action = KeyMap.action(for: keyCode) else { return }
+        let isTypo = afterSpace && KeyMap.isEndPunctuation(keyCode, shift: shift)
+        let isHandDouble = isDouble && (action == .left || action == .right)
+        // When a yellow side-strip cue fires, the block stays green instead of blinking pink.
+        let showYellow = isTypo || isHandDouble
         switch action {
         case .left:
-            leftPiece.blink(handColor, for: blinkDuration)
+            if !showYellow { leftPiece.blink(handColor, for: blinkDuration) }
         case .right:
-            rightPiece.blink(handColor, for: blinkDuration)
+            if !showYellow { rightPiece.blink(handColor, for: blinkDuration) }
         case .space:
             leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
             rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
@@ -79,11 +83,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Side-strip cues (the 15 pt strips outside the blocks).
-        if afterSpace && KeyMap.isEndPunctuation(keyCode, shift: shift) {
+        if isTypo {
             // "word ," / "word ." / "word ?" / "word !": almost always a typo.
             leftEcho.flash(typoColor, for: typoDuration)
             rightEcho.flash(typoColor, for: typoDuration)
-        } else if isDouble && (action == .left || action == .right) {
+        } else if isHandDouble {
             // Same letter/number key twice in a row.
             leftEcho.flash(doubleColor, for: blinkDuration)
             rightEcho.flash(doubleColor, for: blinkDuration)
