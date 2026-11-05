@@ -14,7 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let doubleColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00, both side strips
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
-    private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space or backspace within this long
+    private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space, backspace or . , ? ! within this long
     private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
     private let echoMaxDuration: TimeInterval = 1 // ...until the next key, or 1 s, whichever comes first
     private let typoColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00
@@ -91,9 +91,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if keyCode == KeyMap.apostrophe {
             rightEcho.flash(apostropheColor, for: blinkDuration)
         }
+
+        // Stalling after . , ? ! counts as hesitation too.
+        if KeyMap.isEndPunctuation(keyCode, shift: shift) {
+            armHesitationAlarm()
+        }
     }
 
-    /// Hesitation alarm, armed by space and backspace: if no key follows within
+    /// Hesitation alarm, armed by space, backspace and . , ? !: if no key follows within
     /// echoDelay, the red strips blink until the next key press (or for at most
     /// echoMaxDuration).
     private func armHesitationAlarm() {
