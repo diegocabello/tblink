@@ -1,0 +1,4 @@
+.build/
+.swiftpm/
+tblink.app/
+.DS_Store
