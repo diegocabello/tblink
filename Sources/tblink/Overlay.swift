@@ -8,6 +8,8 @@ final class SidePiece {
     private var resetWork: DispatchWorkItem?
     private let bottomStrip = NSView()
     private var stripResetWork: DispatchWorkItem?
+    private let topStrip = NSView()
+    private var topResetWork: DispatchWorkItem?
 
     init(restColor: NSColor) {
         self.restColor = restColor
@@ -15,9 +17,11 @@ final class SidePiece {
 
         let content = NSView()
         content.wantsLayer = true
-        bottomStrip.wantsLayer = true
-        bottomStrip.isHidden = true
-        content.addSubview(bottomStrip)
+        for strip in [bottomStrip, topStrip] {
+            strip.wantsLayer = true
+            strip.isHidden = true
+            content.addSubview(strip)
+        }
         panel.contentView = content
     }
 
@@ -30,7 +34,9 @@ final class SidePiece {
     func hide() {
         resetWork?.cancel()
         stripResetWork?.cancel()
+        topResetWork?.cancel()
         bottomStrip.isHidden = true
+        topStrip.isHidden = true
         panel.backgroundColor = restColor
         panel.orderOut(nil)
     }
@@ -60,6 +66,22 @@ final class SidePiece {
             self?.bottomStrip.isHidden = true
         }
         stripResetWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
+    }
+
+    /// Fills the top `fraction` of the piece with `color` for `duration` seconds,
+    /// leaving the rest of the piece as it is. A new blink restarts the timer.
+    func blinkTop(_ color: NSColor, fraction: CGFloat, for duration: TimeInterval) {
+        topResetWork?.cancel()
+        guard let bounds = panel.contentView?.bounds else { return }
+        let height = bounds.height * fraction
+        topStrip.frame = NSRect(x: 0, y: bounds.height - height, width: bounds.width, height: height)
+        topStrip.layer?.backgroundColor = color.cgColor
+        topStrip.isHidden = false
+        let work = DispatchWorkItem { [weak self] in
+            self?.topStrip.isHidden = true
+        }
+        topResetWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
     }
 }

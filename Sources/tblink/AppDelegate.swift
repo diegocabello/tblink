@@ -8,7 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let handColor = NSColor(srgbRed: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
     private let spaceColor = NSColor(srgbRed: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
     private let spaceFraction: CGFloat = 1.0 / 5.0 // space fills the bottom 1/5 of each piece
-    private let backspaceColor = NSColor.systemBlue
+    private let backspaceColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
+    private let backspaceFraction: CGFloat = 1.0 / 5.0 // backspace fills the top 1/5 of each piece
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
     private let echoDelay: TimeInterval = 0.15 // red strips appear if no key follows space within this long
@@ -63,7 +64,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             hesitationWork = work
             DispatchQueue.main.asyncAfter(deadline: .now() + echoDelay, execute: work)
         case .backspace:
-            rightPiece.blink(backspaceColor, for: blinkDuration)
+            leftPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
+            rightPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
         }
     }
 
