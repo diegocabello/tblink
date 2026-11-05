@@ -15,7 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let doubleBand: (from: CGFloat, to: CGFloat) = (1.0 / 5.0, 4.0 / 5.0) // middle 3/5 of the block
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
-    private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space within this long
+    private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space or backspace within this long
     private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
     private let echoMaxDuration: TimeInterval = 3 // ...until the next key, or 3 s, whichever comes first
 
@@ -74,19 +74,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .space:
             leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
             rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
-            // Hesitation alarm: if no key follows within echoDelay, the red strips
-            // blink until the next key press (or for at most echoMaxDuration).
-            let work = DispatchWorkItem { [weak self] in
-                guard let self, self.isOn else { return }
-                self.hesitationWork = nil
-                self.startAlarm()
-            }
-            hesitationWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + echoDelay, execute: work)
+            armHesitationAlarm()
         case .backspace:
             leftPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
             rightPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
+            armHesitationAlarm()
         }
+    }
+
+    /// Hesitation alarm, armed by space and backspace: if no key follows within
+    /// echoDelay, the red strips blink until the next key press (or for at most
+    /// echoMaxDuration).
+    private func armHesitationAlarm() {
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.isOn else { return }
+            self.hesitationWork = nil
+            self.startAlarm()
+        }
+        hesitationWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + echoDelay, execute: work)
     }
 
     // MARK: - Hesitation alarm
