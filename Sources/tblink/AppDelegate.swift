@@ -76,12 +76,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// A hand key blinks the whole block. The second press of a double blinks only
-    /// the middle band, leaving the top and bottom fifths green.
+    /// A hand key blinks the whole block on its side. The second press of a double
+    /// instead blinks only the middle band, on both blocks, leaving their top and
+    /// bottom fifths green.
     private func blinkHand(_ piece: SidePiece, isDouble: Bool) {
         if isDouble {
-            piece.endBlink() // the first press may still be lighting the whole block
-            piece.blinkMiddle(doubleColor, from: doubleBand.from, to: doubleBand.to, for: blinkDuration)
+            for side in [leftPiece, rightPiece] {
+                side.endBlink() // an earlier press may still be lighting the whole block
+                side.blinkMiddle(doubleColor, from: doubleBand.from, to: doubleBand.to, for: blinkDuration)
+            }
         } else {
             piece.blink(handColor, for: blinkDuration)
         }
