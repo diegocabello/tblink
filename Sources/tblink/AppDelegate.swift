@@ -27,7 +27,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var rightPiece = SidePiece(restColor: restColor)
     private lazy var leftEcho = FlashStrip(color: echoColor)
     private lazy var rightEcho = FlashStrip(color: echoColor)
-    private lazy var keyTap = KeyTap { [weak self] keyCode, shift in self?.handle(keyCode, shift: shift) }
+    private lazy var keyTap = KeyTap { [weak self] event in self?.handle(event) }
+    private lazy var recorder = Recorder(hesitationThreshold: echoDelay)
 
     private var statusItem: NSStatusItem?
     private let toggleItem = NSMenuItem(title: "On", action: #selector(AppDelegate.toggle), keyEquivalent: "")
@@ -38,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var alarmTimer: Timer?    // fallback on older macOS
     private var alarmFrame = 0
     private var lastKeyCode: Int64?
+    private var lastShift = false
     private var alarmStart: CFTimeInterval = 0
     private var isOn = false
 
@@ -50,23 +52,66 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
         layoutPieces()
+        let workspace = NSWorkspace.shared.notificationCenter
+        workspace.addObserver(self, selector: #selector(willSleep),
+                              name: NSWorkspace.willSleepNotification, object: nil)
+        workspace.addObserver(self, selector: #selector(didWake),
+                              name: NSWorkspace.didWakeNotification, object: nil)
         setOn(true)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        recorder.endSession(reason: "quit")
+    }
+
+    @objc private func willSleep() {
+        recorder.endSession(reason: "sleep")
+    }
+
+    @objc private func didWake() {
+        if isOn { recorder.startSession() }
     }
 
     // MARK: - Key handling
 
-    private func handle(_ keyCode: Int64, shift: Bool) {
+    private func handle(_ event: KeyEvent) {
+        guard event.isDown else {
+            recorder.keyUp(keyCode: event.keyCode, at: event.time)
+            return
+        }
+        let keyCode = event.keyCode
+        let shift = event.shift
         // Any key press ends the wait after space, and stops the alarm if it's going.
         hesitationWork?.cancel()
         hesitationWork = nil
         stopAlarm()
+        // ⌘/Control shortcuts aren't typing: no cues, no alarm, not logged, and the
+        // next key isn't treated as a double of anything before the shortcut.
+        guard !event.isShortcut else {
+            lastKeyCode = nil
+            return
+        }
         // Same key as the previous press (auto-repeat is already filtered out).
-        let isDouble = keyCode == lastKeyCode
+        let sameKey = keyCode == lastKeyCode
+        let sameShift = shift == lastShift
         let afterSpace = lastKeyCode == KeyMap.space
         lastKeyCode = keyCode
+        lastShift = shift
         guard isOn, let action = KeyMap.action(for: keyCode) else { return }
-        let isTypo = afterSpace && KeyMap.isEndPunctuation(keyCode, shift: shift)
-        let isHandDouble = isDouble && (action == .left || action == .right)
+
+        // One kind per press. Special keys win; "double" is only for letters and numbers.
+        let kind: LogKind
+        if keyCode == KeyMap.apostrophe { kind = .apostrophe }
+        else if keyCode == KeyMap.space { kind = .space }
+        else if keyCode == KeyMap.backspace { kind = .backspace }
+        else if KeyMap.enterKeys.contains(keyCode) { kind = .enter }
+        else if KeyMap.isEndPunctuation(keyCode, shift: shift) { kind = .punct }
+        else if KeyMap.otherKeys.contains(keyCode) { kind = .other }
+        else if sameKey { kind = .double }
+        else { kind = action == .left ? .left : .right }
+
+        let isTypo = afterSpace && kind == .punct
+        let isHandDouble = kind == .double
         // When a yellow side-strip cue fires, the block stays green instead of blinking pink.
         let showYellow = isTypo || isHandDouble
         switch action {
@@ -98,9 +143,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Hesitation: a stall after any key counts (mid-word, after space, after
         // punctuation, after backspace), except Return, Tab and navigation keys.
-        if !KeyMap.noHesitation.contains(keyCode) {
+        let armsHesitation = !KeyMap.noHesitation.contains(keyCode)
+        if armsHesitation {
             armHesitationAlarm()
         }
+
+        var cues: [String] = []
+        if isTypo { cues.append("punct-typo") }
+        if isHandDouble { cues.append("double") }
+        if keyCode == KeyMap.apostrophe { cues.append("apostrophe") }
+        let isLetterKind = kind == .left || kind == .right || kind == .double
+        recorder.keyDown(
+            keyCode: keyCode,
+            kind: kind,
+            hand: isLetterKind ? (action == .left ? "left" : "right") : nil,
+            shift: shift,
+            isRepeat: !isLetterKind && sameKey && sameShift,
+            cues: cues,
+            armsHesitation: armsHesitation,
+            at: event.time
+        )
     }
 
     /// Hesitation alarm, armed by every key except Return, Tab and navigation: if no key follows within
@@ -195,11 +257,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             leftEcho.show()
             rightEcho.show()
             startTap()
+            recorder.startSession()
         } else {
             retryTimer?.invalidate()
             retryTimer = nil
             permissionItem.isHidden = true
             keyTap.stop()
+            recorder.endSession(reason: "off")
             hesitationWork?.cancel()
             hesitationWork = nil
             stopAlarm()
@@ -242,6 +306,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                    width: echoWidth, height: frames.right.height))
     }
 
+    @objc private func showLogs() {
+        let url = Recorder.databaseURL
+        if FileManager.default.fileExists(atPath: url.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        } else {
+            NSWorkspace.shared.open(Recorder.directory)
+        }
+    }
+
     private func setUpStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "tblink")
@@ -252,6 +325,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         permissionItem.isEnabled = false
         permissionItem.isHidden = true
         menu.addItem(permissionItem)
+        menu.addItem(.separator())
+        let logsItem = NSMenuItem(title: "Show Logs in Finder", action: #selector(showLogs), keyEquivalent: "")
+        logsItem.target = self
+        menu.addItem(logsItem)
         menu.addItem(.separator())
         menu.addItem(NSMenuItem(title: "Quit tblink", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu

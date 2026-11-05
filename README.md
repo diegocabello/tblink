@@ -25,6 +25,33 @@ Keys are matched by physical position, so switching keyboard layouts doesn't cha
 Edit `Sources/tblink/KeyMap.swift` to move keys between hands, and the constants at the top of
 `Sources/tblink/AppDelegate.swift` to change colors, width (50 pt) or blink length.
 
+## Logging
+
+While tblink is on, it records **one row per key press** to a local SQLite file:
+
+```
+~/Library/Application Support/tblink/tblink.sqlite
+```
+
+Menu bar icon → **Show Logs in Finder** opens it. Nothing leaves your Mac.
+
+It **never records which key you pressed**, only its kind:
+`left`, `right`, `double` (2nd+ press of the same letter/number), `apostrophe`, `space`,
+`punct` (`.` `,` `?` `!`), `backspace`, `enter`, `other` (Tab, arrows, Home/End/Page keys, forward delete).
+⌘/Control shortcuts, Esc and F-keys aren't logged.
+
+| Table | Columns |
+| --- | --- |
+| `sessions` | `started_at`, `ended_at`, `end_reason` (off, sleep, quit) |
+| `events` | `t` (seconds since session start), `kind`, `hand` (for left/right/double), `shift`, `is_repeat` (a special key repeated: `''`, `..`, double space), `hold_ms`, `gap_after_ms` (empty if over 6 s), `alarm` (hesitation alarm went off after it), `cues` (`double`, `punct-typo`, `apostrophe`) |
+| `markers` | `secure-input-on` / `-off`: password fields hide keys, so gaps there aren't hesitation |
+
+Try it:
+
+```bash
+sqlite3 ~/Library/Application\ Support/tblink/tblink.sqlite "SELECT kind, COUNT(*), ROUND(AVG(gap_after_ms)) FROM events GROUP BY kind"
+```
+
 ## Requirements
 
 - macOS 12 or later

@@ -1,15 +1,26 @@
 import CoreGraphics
 import Foundation
+import QuartzCore
 
-/// Listen-only, system-wide keyDown tap. Needs Input Monitoring permission.
+struct KeyEvent {
+    let isDown: Bool
+    let keyCode: Int64
+    let shift: Bool
+    /// ⌘ or Control held: a shortcut, not typing.
+    let isShortcut: Bool
+    /// Seconds on a clock that never jumps (CACurrentMediaTime).
+    let time: CFTimeInterval
+}
+
+/// Listen-only, system-wide key down/up tap. Needs Input Monitoring permission.
 /// It only observes key presses; it never blocks or changes them.
 final class KeyTap {
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var enabled = false
-    private let handler: (_ keyCode: Int64, _ shift: Bool) -> Void
+    private let handler: (KeyEvent) -> Void
 
-    init(handler: @escaping (_ keyCode: Int64, _ shift: Bool) -> Void) {
+    init(handler: @escaping (KeyEvent) -> Void) {
         self.handler = handler
     }
 
@@ -26,7 +37,7 @@ final class KeyTap {
             CGEvent.tapEnable(tap: tap, enable: true)
             return true
         }
-        let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
+        let mask = CGEventMask(1 << CGEventType.keyDown.rawValue) | CGEventMask(1 << CGEventType.keyUp.rawValue)
         let refcon = Unmanaged.passUnretained(self).toOpaque()
         guard let newTap = CGEvent.tapCreate(
             tap: .cgSessionEventTap,
@@ -57,10 +68,17 @@ final class KeyTap {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             // macOS switches a tap off if it ever runs slow; turn it back on.
             if enabled, let tap { CGEvent.tapEnable(tap: tap, enable: true) }
-        case .keyDown:
+        case .keyDown, .keyUp:
             // First press only: skip auto-repeat while a key is held.
-            guard event.getIntegerValueField(.keyboardEventAutorepeat) == 0 else { return }
-            handler(event.getIntegerValueField(.keyboardEventKeycode), event.flags.contains(.maskShift))
+            if type == .keyDown, event.getIntegerValueField(.keyboardEventAutorepeat) != 0 { return }
+            let flags = event.flags
+            handler(KeyEvent(
+                isDown: type == .keyDown,
+                keyCode: event.getIntegerValueField(.keyboardEventKeycode),
+                shift: flags.contains(.maskShift),
+                isShortcut: flags.contains(.maskCommand) || flags.contains(.maskControl),
+                time: CACurrentMediaTime()
+            ))
         default:
             break
         }

@@ -25,9 +25,15 @@ enum KeyMap {
         115, 119, 116, 121,     // Home, End, Page Up, Page Down
     ]
 
+    static let enterKeys: Set<Int64> = [36, 76] // Return, numpad Enter
+
+    /// Logged as kind "other": Tab, arrows, Home/End/Page Up/Page Down, forward delete.
+    static let otherKeys: Set<Int64> = [48, 123, 124, 125, 126, 115, 119, 116, 121, 117]
+
     /// . , ? ! : punctuation that shouldn't come right after a space.
+    /// With Shift, the period and comma keys type > and <, which don't count.
     static func isEndPunctuation(_ keyCode: Int64, shift: Bool) -> Bool {
-        if keyCode == period || keyCode == comma { return true }
+        if keyCode == period || keyCode == comma { return !shift }
         return shift && (keyCode == slash || keyCode == one)
     }
 
