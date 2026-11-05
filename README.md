@@ -1,12 +1,12 @@
 # tblink
 
-Two red blocks sit on either side of the MacBook camera notch and blink as you type.
+Two green blocks sit on either side of the MacBook camera notch and blink as you type.
 
 | Key | Effect |
 | --- | --- |
-| Left-hand key | left block blinks yellow |
-| Right-hand key | right block blinks yellow |
-| Space | both blink green |
+| Left-hand key | left block blinks magenta |
+| Right-hand key | right block blinks magenta |
+| Space | both blink white |
 | Backspace | right block blinks blue |
 
 Each blink lasts 1/20 s. Holding a key blinks once (no auto-repeat).

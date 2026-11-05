@@ -4,9 +4,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Tweak these to taste.
     private let pieceWidth: CGFloat = 50
     private let blinkDuration: TimeInterval = 0.05 // 1/20 s
-    private let restColor = NSColor.systemRed
-    private let handColor = NSColor.systemYellow
-    private let spaceColor = NSColor.systemGreen
+    private let restColor = NSColor.systemGreen
+    private let handColor = NSColor.magenta
+    private let spaceColor = NSColor.white
     private let backspaceColor = NSColor.systemBlue
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
