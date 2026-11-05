@@ -7,11 +7,11 @@ Two green (#00ff00) blocks sit on either side of the MacBook camera notch and bl
 | Left-hand key | left block blinks magenta (#ff00ff) |
 | Right-hand key | right block blinks magenta |
 | Same letter/number key twice in a row (e.g. the ll in "literally") | on the second press the 15 pt side strips blink yellow (#ffff00); the block doesn't blink pink |
-| Space | bottom 1/5 of both blocks blinks magenta. If you don't press another key within 0.15 s, 15 pt red (#ff0000) strips on the outer edges of both blocks blink 2 frames on, 2 frames off until your next key or for at most 1 s (hesitation alarm). Return never starts it |
+| Space | bottom 1/5 of both blocks blinks magenta |
 | `.` `,` `?` or `!` right after a space ("word ,") | the 15 pt side strips blink yellow (#ffff00); the block doesn't blink pink |
-| `.` `,` `?` `!` | same hesitation alarm as space if no key follows within 0.15 s |
 | Apostrophe `'` | the 15 pt strip right of the right block blinks cyan (#00ffff) |
-| Backspace | top 1/5 of both blocks blinks red (#ff0000). The same hesitation alarm as space starts if no key follows within 0.15 s |
+| Backspace | top 1/5 of both blocks blinks red (#ff0000) |
+| Any pause of 0.15 s after a key (mid-word, after space, punctuation or backspace) | hesitation alarm: the 15 pt red (#ff0000) side strips blink 2 frames on, 2 frames off until your next key or for at most 1 s. Never after Return, Enter, Tab, arrows or Home/End/Page keys |
 
 Each blink lasts 1/20 s. Holding a key blinks once (no auto-repeat).
 Modifiers, Caps Lock, Esc and F-keys don't blink.

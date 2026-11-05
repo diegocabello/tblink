@@ -16,6 +16,15 @@ enum KeyMap {
     static let slash: Int64 = 44   // ? with Shift
     static let one: Int64 = 18     // ! with Shift
 
+    /// Keys after which a pause is expected, so they never arm the hesitation alarm:
+    /// Return, numpad Enter, Tab, arrows, Home/End/Page Up/Page Down.
+    static let noHesitation: Set<Int64> = [
+        36, 76,                 // Return, numpad Enter
+        48,                     // Tab
+        123, 124, 125, 126,     // arrows
+        115, 119, 116, 121,     // Home, End, Page Up, Page Down
+    ]
+
     /// . , ? ! : punctuation that shouldn't come right after a space.
     static func isEndPunctuation(_ keyCode: Int64, shift: Bool) -> Bool {
         if keyCode == period || keyCode == comma { return true }

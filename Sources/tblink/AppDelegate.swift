@@ -14,7 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let doubleColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00, both side strips
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
-    private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space, backspace or . , ? ! within this long
+    private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows within this long (never after Return, Tab or arrows)
     private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
     private let echoMaxDuration: TimeInterval = 1 // ...until the next key, or 1 s, whichever comes first
     private let typoColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00
@@ -75,11 +75,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .space:
             leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
             rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
-            armHesitationAlarm()
         case .backspace:
             leftPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
             rightPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
-            armHesitationAlarm()
         }
 
         // Side-strip cues (the 15 pt strips outside the blocks).
@@ -96,13 +94,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             rightEcho.flash(apostropheColor, for: blinkDuration)
         }
 
-        // Stalling after . , ? ! counts as hesitation too.
-        if KeyMap.isEndPunctuation(keyCode, shift: shift) {
+        // Hesitation: a stall after any key counts (mid-word, after space, after
+        // punctuation, after backspace), except Return, Tab and navigation keys.
+        if !KeyMap.noHesitation.contains(keyCode) {
             armHesitationAlarm()
         }
     }
 
-    /// Hesitation alarm, armed by space, backspace and . , ? !: if no key follows within
+    /// Hesitation alarm, armed by every key except Return, Tab and navigation: if no key follows within
     /// echoDelay, the red strips blink until the next key press (or for at most
     /// echoMaxDuration).
     private func armHesitationAlarm() {
