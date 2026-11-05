@@ -6,6 +6,8 @@ final class SidePiece {
     private let panel: NSPanel
     private let restColor: NSColor
     private var resetWork: DispatchWorkItem?
+    private let bottomStrip = NSView()
+    private var stripResetWork: DispatchWorkItem?
 
     init(restColor: NSColor) {
         self.restColor = restColor
@@ -23,6 +25,13 @@ final class SidePiece {
         panel.hidesOnDeactivate = false
         panel.isReleasedWhenClosed = false
         panel.backgroundColor = restColor
+
+        let content = NSView()
+        content.wantsLayer = true
+        bottomStrip.wantsLayer = true
+        bottomStrip.isHidden = true
+        content.addSubview(bottomStrip)
+        panel.contentView = content
     }
 
     func place(at frame: NSRect) {
@@ -33,6 +42,8 @@ final class SidePiece {
 
     func hide() {
         resetWork?.cancel()
+        stripResetWork?.cancel()
+        bottomStrip.isHidden = true
         panel.backgroundColor = restColor
         panel.orderOut(nil)
     }
@@ -46,6 +57,22 @@ final class SidePiece {
             self.panel.backgroundColor = self.restColor
         }
         resetWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
+    }
+
+    /// Fills the bottom `fraction` of the piece with `color` for `duration` seconds,
+    /// leaving the rest of the piece as it is. A new blink restarts the timer.
+    func blinkBottom(_ color: NSColor, fraction: CGFloat, for duration: TimeInterval) {
+        stripResetWork?.cancel()
+        guard let bounds = panel.contentView?.bounds else { return }
+        // NSView's origin is bottom-left, so y = 0 is the bottom edge.
+        bottomStrip.frame = NSRect(x: 0, y: 0, width: bounds.width, height: bounds.height * fraction)
+        bottomStrip.layer?.backgroundColor = color.cgColor
+        bottomStrip.isHidden = false
+        let work = DispatchWorkItem { [weak self] in
+            self?.bottomStrip.isHidden = true
+        }
+        stripResetWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
     }
 }

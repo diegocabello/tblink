@@ -6,7 +6,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let blinkDuration: TimeInterval = 0.05 // 1/20 s
     private let restColor = NSColor.systemGreen
     private let handColor = NSColor.magenta
-    private let spaceColor = NSColor.white
+    private let spaceColor = NSColor.magenta
+    private let spaceFraction: CGFloat = 2.0 / 5.0 // space fills the bottom 2/5 of each piece
     private let backspaceColor = NSColor.systemBlue
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
@@ -41,8 +42,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .right:
             rightPiece.blink(handColor, for: blinkDuration)
         case .space:
-            leftPiece.blink(spaceColor, for: blinkDuration)
-            rightPiece.blink(spaceColor, for: blinkDuration)
+            leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
+            rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
         case .backspace:
             rightPiece.blink(backspaceColor, for: blinkDuration)
         }
