@@ -9,9 +9,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let spaceColor = NSColor(srgbRed: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
     private let spaceFraction: CGFloat = 1.0 / 5.0 // space fills the bottom 1/5 of each piece
     private let backspaceColor = NSColor.systemBlue
+    private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
+    private let echoWidth: CGFloat = 15
+    private let echoDelay: TimeInterval = 0.1 // red strips appear this long after space
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
     private lazy var rightPiece = SidePiece(restColor: restColor)
+    private lazy var leftEcho = FlashStrip(color: echoColor)
+    private lazy var rightEcho = FlashStrip(color: echoColor)
     private lazy var keyTap = KeyTap { [weak self] keyCode in self?.handle(keyCode) }
 
     private var statusItem: NSStatusItem?
@@ -44,6 +49,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .space:
             leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
             rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
+            DispatchQueue.main.asyncAfter(deadline: .now() + echoDelay) { [weak self] in
+                guard let self, self.isOn else { return }
+                self.leftEcho.flash(for: self.blinkDuration)
+                self.rightEcho.flash(for: self.blinkDuration)
+            }
         case .backspace:
             rightPiece.blink(backspaceColor, for: blinkDuration)
         }
@@ -69,6 +79,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             keyTap.stop()
             leftPiece.hide()
             rightPiece.hide()
+            leftEcho.hide()
+            rightEcho.hide()
         }
     }
 
@@ -97,6 +109,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let frames = NotchLayout.frames(width: pieceWidth) else { return }
         leftPiece.place(at: frames.left)
         rightPiece.place(at: frames.right)
+        // Red strips sit on the outer edges: left of the left block, right of the right block.
+        leftEcho.place(at: NSRect(x: frames.left.minX - echoWidth, y: frames.left.minY,
+                                  width: echoWidth, height: frames.left.height))
+        rightEcho.place(at: NSRect(x: frames.right.maxX, y: frames.right.minY,
+                                   width: echoWidth, height: frames.right.height))
     }
 
     private func setUpStatusItem() {

@@ -11,20 +11,7 @@ final class SidePiece {
 
     init(restColor: NSColor) {
         self.restColor = restColor
-        panel = NSPanel(
-            contentRect: .zero,
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        panel.level = .statusBar // one level above the menu bar
-        panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-        panel.ignoresMouseEvents = true
-        panel.hasShadow = false
-        panel.isOpaque = true
-        panel.hidesOnDeactivate = false
-        panel.isReleasedWhenClosed = false
-        panel.backgroundColor = restColor
+        panel = makeOverlayPanel(color: restColor)
 
         let content = NSView()
         content.wantsLayer = true
@@ -75,6 +62,54 @@ final class SidePiece {
         stripResetWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
     }
+}
+
+/// A strip that is normally invisible and only appears for a moment when flashed.
+final class FlashStrip {
+    private let panel: NSPanel
+    private var hideWork: DispatchWorkItem?
+
+    init(color: NSColor) {
+        panel = makeOverlayPanel(color: color)
+    }
+
+    func place(at frame: NSRect) {
+        panel.setFrame(frame, display: false)
+    }
+
+    /// Shows the strip for `duration` seconds. A new flash restarts the timer.
+    func flash(for duration: TimeInterval) {
+        hideWork?.cancel()
+        panel.orderFrontRegardless()
+        let work = DispatchWorkItem { [weak self] in self?.panel.orderOut(nil) }
+        hideWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
+    }
+
+    func hide() {
+        hideWork?.cancel()
+        panel.orderOut(nil)
+    }
+}
+
+/// A borderless panel above the menu bar that ignores the mouse and shows on
+/// every Space, including over full-screen apps.
+private func makeOverlayPanel(color: NSColor) -> NSPanel {
+    let panel = NSPanel(
+        contentRect: .zero,
+        styleMask: [.borderless, .nonactivatingPanel],
+        backing: .buffered,
+        defer: false
+    )
+    panel.level = .statusBar // one level above the menu bar
+    panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
+    panel.ignoresMouseEvents = true
+    panel.hasShadow = false
+    panel.isOpaque = true
+    panel.hidesOnDeactivate = false
+    panel.isReleasedWhenClosed = false
+    panel.backgroundColor = color
+    return panel
 }
 
 enum NotchLayout {
