@@ -11,7 +11,7 @@ Two green (#00ff00) blocks sit on either side of the MacBook camera notch and bl
 | `.` `,` `?` or `!` right after a space ("word ,") | the 15 pt side strips blink yellow (#ffff00); the block doesn't blink pink |
 | Apostrophe `'` | the 15 pt strip right of the right block blinks cyan (#00ffff) |
 | Backspace | top 1/5 of both blocks blinks blue (#0000ff) |
-| Any pause of 0.15 s after a key (mid-word, after space, punctuation or backspace) | hesitation alarm: both blocks and both 15 pt side strips turn **solid** red (#ff0000) until your next key or for at most 1 s. Never after Return, Enter, Tab, arrows or Home/End/Page keys |
+| Any pause of 0.15 s after a key (mid-word, after space, punctuation or backspace) | hesitation alarm: both blocks turn **solid** red (#ff0000) and the 15 pt side strips blink red/black, 2 frames each until your next key or for at most 1 s. Never after Return, Enter, Tab, arrows or Home/End/Page keys |
 
 Colors are pure channels in **Display P3**, the screen's full wide-color range, so they're more intense than the same hex codes on the web (sRGB).
 
