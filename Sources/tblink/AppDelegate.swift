@@ -17,7 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let echoWidth: CGFloat = 15
     private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space or backspace within this long
     private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
-    private let echoMaxDuration: TimeInterval = 3 // ...until the next key, or 3 s, whichever comes first
+    private let echoMaxDuration: TimeInterval = 1 // ...until the next key, or 1 s, whichever comes first
     private let typoColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00
     private let typoDuration: TimeInterval = 0.15 // "space then . or ," lights the side strips this long
     private let apostropheColor = NSColor(srgbRed: 0, green: 1, blue: 1, alpha: 1) // #00ffff, right side strip
