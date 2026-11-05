@@ -190,6 +190,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alarmFrame = 0
         alarmStart = CACurrentMediaTime()
         setEchoLit(true)
+        // The blocks go solid red for the whole alarm; only the side strips blink.
+        leftPiece.setAlarm(echoColor, lit: true)
+        rightPiece.setAlarm(echoColor, lit: true)
         if #available(macOS 14.0, *), let screen = NotchLayout.screen {
             let link = screen.displayLink(target: self, selector: #selector(displayLinkTick(_:)))
             link.add(to: .main, forMode: .common)
@@ -215,6 +218,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alarmTimer?.invalidate()
         alarmTimer = nil
         setEchoLit(false)
+        leftPiece.setAlarm(echoColor, lit: false)
+        rightPiece.setAlarm(echoColor, lit: false)
     }
 
     @objc private func displayLinkTick(_ link: AnyObject) {
@@ -237,12 +242,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rightEcho.setColor(color)
     }
 
-    /// Hesitation alarm on/off: the side strips and both whole blocks go red together.
+    /// Blinks the side strips during the hesitation alarm.
     private func setEchoLit(_ lit: Bool) {
         leftEcho.setLit(lit)
         rightEcho.setLit(lit)
-        leftPiece.setAlarm(echoColor, lit: lit)
-        rightPiece.setAlarm(echoColor, lit: lit)
     }
 
     // MARK: - On / off
