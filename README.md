@@ -9,6 +9,7 @@ Two green (#00ff00) blocks sit on either side of the MacBook camera notch and bl
 | Same letter/number key twice in a row (e.g. the ll in "literally") | on the second press only the middle 3/5 of both blocks blinks magenta; the top and bottom fifths stay green |
 | Space | bottom 1/5 of both blocks blinks magenta. If you don't press another key within 0.15 s, 15 pt red (#ff0000) strips on the outer edges of both blocks blink 2 frames on, 2 frames off until your next key or for at most 3 s (hesitation alarm). Return never starts it |
 | `.` or `,` right after a space ("word ,") | the 15 pt side strips light solid yellow (#ffff00) for 0.15 s |
+| Apostrophe `'` | the 15 pt strip right of the right block blinks cyan (#00ffff) |
 | Backspace | top 1/5 of both blocks blinks red (#ff0000). The same hesitation alarm as space starts if no key follows within 0.15 s |
 
 Each blink lasts 1/20 s. Holding a key blinks once (no auto-repeat).

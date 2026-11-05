@@ -12,6 +12,7 @@ enum KeyMap {
     static let backspace: Int64 = 51
     static let period: Int64 = 47
     static let comma: Int64 = 43
+    static let apostrophe: Int64 = 39
 
     /// Left-hand keys: ` 1-6, Tab Q W E R T Y, A S D F G, Z X C V B (and the ISO § key).
     static let leftHand: Set<Int64> = [

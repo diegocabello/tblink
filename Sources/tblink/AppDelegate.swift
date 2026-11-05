@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let echoMaxDuration: TimeInterval = 3 // ...until the next key, or 3 s, whichever comes first
     private let typoColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00
     private let typoDuration: TimeInterval = 0.15 // "space then . or ," lights the side strips this long
+    private let apostropheColor = NSColor(srgbRed: 0, green: 1, blue: 1, alpha: 1) // #00ffff, right side strip
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
     private lazy var rightPiece = SidePiece(restColor: restColor)
@@ -38,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lastKeyCode: Int64?
     private var alarmStart: CFTimeInterval = 0
     private var typoWork: DispatchWorkItem?
+    private var apostropheWork: DispatchWorkItem?
     private var isOn = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -67,6 +69,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // "word ," or "word ." : punctuation right after a space is almost always a typo.
         if afterSpace && (keyCode == KeyMap.period || keyCode == KeyMap.comma) {
             flashTypoCue()
+        }
+        if keyCode == KeyMap.apostrophe {
+            flashApostrophe()
         }
         switch action {
         case .left:
@@ -119,6 +124,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         stopAlarm()
         typoWork?.cancel()
         typoWork = nil
+        apostropheWork?.cancel()
+        apostropheWork = nil
         setEchoColor(echoColor)
         alarmFrame = 0
         alarmStart = CACurrentMediaTime()
@@ -168,6 +175,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Lights the side strips solid yellow for typoDuration. Typing on doesn't cut it short.
     private func flashTypoCue() {
         stopAlarm()
+        apostropheWork?.cancel()
+        apostropheWork = nil
         typoWork?.cancel()
         setEchoColor(typoColor)
         setEchoLit(true)
@@ -179,6 +188,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         typoWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + typoDuration, execute: work)
+    }
+
+    /// Blinks the right side strip cyan for blinkDuration on every apostrophe.
+    private func flashApostrophe() {
+        apostropheWork?.cancel()
+        rightEcho.setColor(apostropheColor)
+        rightEcho.setLit(true)
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.apostropheWork = nil
+            if self.typoWork != nil {
+                self.rightEcho.setColor(self.typoColor) // yellow typo cue is still running
+            } else {
+                self.rightEcho.setLit(false)
+                self.rightEcho.setColor(self.echoColor)
+            }
+        }
+        apostropheWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + blinkDuration, execute: work)
     }
 
     private func setEchoColor(_ color: NSColor) {
