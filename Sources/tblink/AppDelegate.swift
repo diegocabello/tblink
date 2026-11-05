@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let backspaceColor = NSColor.systemBlue
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
-    private let echoDelay: TimeInterval = 0.15 // red strips appear this long after space
+    private let echoDelay: TimeInterval = 0.15 // red strips appear if no key follows space within this long
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
     private lazy var rightPiece = SidePiece(restColor: restColor)
@@ -23,6 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let toggleItem = NSMenuItem(title: "On", action: #selector(AppDelegate.toggle), keyEquivalent: "")
     private let permissionItem = NSMenuItem(title: "Waiting for Input Monitoring permission…", action: nil, keyEquivalent: "")
     private var retryTimer: Timer?
+    private var hesitationWork: DispatchWorkItem?
     private var isOn = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -40,6 +41,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Key handling
 
     private func handle(_ keyCode: Int64) {
+        // Any key press means you didn't stall after the last space.
+        hesitationWork?.cancel()
+        hesitationWork = nil
         guard isOn, let action = KeyMap.action(for: keyCode) else { return }
         switch action {
         case .left:
@@ -49,11 +53,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .space:
             leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
             rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
-            DispatchQueue.main.asyncAfter(deadline: .now() + echoDelay) { [weak self] in
+            // Hesitation alarm: red strips only if no key follows within echoDelay.
+            let work = DispatchWorkItem { [weak self] in
                 guard let self, self.isOn else { return }
+                self.hesitationWork = nil
                 self.leftEcho.flash(for: self.blinkDuration)
                 self.rightEcho.flash(for: self.blinkDuration)
             }
+            hesitationWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + echoDelay, execute: work)
         case .backspace:
             rightPiece.blink(backspaceColor, for: blinkDuration)
         }
