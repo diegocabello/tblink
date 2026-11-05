@@ -1,11 +1,11 @@
 # tblink
 
-Two yellow blocks sit on either side of the MacBook camera notch and blink as you type.
+Two red blocks sit on either side of the MacBook camera notch and blink as you type.
 
 | Key | Effect |
 | --- | --- |
-| Left-hand key | left block blinks red |
-| Right-hand key | right block blinks red |
+| Left-hand key | left block blinks yellow |
+| Right-hand key | right block blinks yellow |
 | Space | both blink green |
 | Backspace | right block blinks blue |
 
