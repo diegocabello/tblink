@@ -18,6 +18,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space or backspace within this long
     private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
     private let echoMaxDuration: TimeInterval = 3 // ...until the next key, or 3 s, whichever comes first
+    private let typoColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00
+    private let typoDuration: TimeInterval = 0.15 // "space then . or ," lights the side strips this long
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
     private lazy var rightPiece = SidePiece(restColor: restColor)
@@ -35,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var alarmFrame = 0
     private var lastKeyCode: Int64?
     private var alarmStart: CFTimeInterval = 0
+    private var typoWork: DispatchWorkItem?
     private var isOn = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -58,8 +61,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         stopAlarm()
         // Same key as the previous press (auto-repeat is already filtered out).
         let isDouble = keyCode == lastKeyCode
+        let afterSpace = lastKeyCode == KeyMap.space
         lastKeyCode = keyCode
         guard isOn, let action = KeyMap.action(for: keyCode) else { return }
+        // "word ," or "word ." : punctuation right after a space is almost always a typo.
+        if afterSpace && (keyCode == KeyMap.period || keyCode == KeyMap.comma) {
+            flashTypoCue()
+        }
         switch action {
         case .left:
             blinkHand(leftPiece, isDouble: isDouble)
@@ -109,6 +117,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// synced to the screen's refresh, until the next key press or `echoMaxDuration`.
     private func startAlarm() {
         stopAlarm()
+        typoWork?.cancel()
+        typoWork = nil
+        setEchoColor(echoColor)
         alarmFrame = 0
         alarmStart = CACurrentMediaTime()
         setEchoLit(true)
@@ -125,7 +136,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private var alarmRunning: Bool { alarmLink != nil || alarmTimer != nil }
+
     private func stopAlarm() {
+        // Leave the strips alone if they're showing the typo cue instead.
+        guard alarmRunning else { return }
         if #available(macOS 14.0, *) {
             (alarmLink as? CADisplayLink)?.invalidate()
         }
@@ -148,6 +163,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         alarmFrame += 1
         setEchoLit((alarmFrame / echoFramesPerToggle) % 2 == 0)
+    }
+
+    /// Lights the side strips solid yellow for typoDuration. Typing on doesn't cut it short.
+    private func flashTypoCue() {
+        stopAlarm()
+        typoWork?.cancel()
+        setEchoColor(typoColor)
+        setEchoLit(true)
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.typoWork = nil
+            self.setEchoLit(false)
+            self.setEchoColor(self.echoColor)
+        }
+        typoWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + typoDuration, execute: work)
+    }
+
+    private func setEchoColor(_ color: NSColor) {
+        leftEcho.setColor(color)
+        rightEcho.setColor(color)
     }
 
     private func setEchoLit(_ lit: Bool) {

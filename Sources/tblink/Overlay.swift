@@ -125,6 +125,10 @@ final class FlashStrip {
         panel.orderOut(nil)
     }
 
+    func setColor(_ color: NSColor) {
+        panel.backgroundColor = color
+    }
+
     func setLit(_ lit: Bool) {
         guard lit != isLit else { return }
         isLit = lit
