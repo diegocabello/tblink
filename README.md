@@ -6,6 +6,7 @@ Two green (#00ff00) blocks sit on either side of the MacBook camera notch and bl
 | --- | --- |
 | Left-hand key | left block blinks magenta (#ff00ff) |
 | Right-hand key | right block blinks magenta |
+| Same letter/number key twice in a row (e.g. the ll in "literally") | the middle 3/5 of that hand's block blinks cyan (#00ffff) on the second press |
 | Space | bottom 1/5 of both blocks blinks magenta. If you don't press another key within 0.15 s, 15 pt red (#ff0000) strips on the outer edges of both blocks blink 2 frames on, 2 frames off until your next key or for at most 3 s (hesitation alarm). Return never starts it |
 | Backspace | top 1/5 of both blocks blinks red (#ff0000) |
 

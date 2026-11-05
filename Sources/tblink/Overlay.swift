@@ -1,15 +1,14 @@
 import AppKit
 
-/// One colored block beside the notch: a borderless panel above the menu bar
-/// that ignores the mouse and shows on every Space, including over full-screen apps.
+/// One colored block beside the notch. The whole block can blink, and so can
+/// horizontal bands inside it (bottom, middle, top), each on its own timer.
 final class SidePiece {
     private let panel: NSPanel
     private let restColor: NSColor
     private var resetWork: DispatchWorkItem?
-    private let bottomStrip = NSView()
-    private var stripResetWork: DispatchWorkItem?
-    private let topStrip = NSView()
-    private var topResetWork: DispatchWorkItem?
+    private let bottomBand = Band()
+    private let middleBand = Band()
+    private let topBand = Band()
 
     init(restColor: NSColor) {
         self.restColor = restColor
@@ -17,10 +16,8 @@ final class SidePiece {
 
         let content = NSView()
         content.wantsLayer = true
-        for strip in [bottomStrip, topStrip] {
-            strip.wantsLayer = true
-            strip.isHidden = true
-            content.addSubview(strip)
+        for band in [bottomBand, middleBand, topBand] {
+            content.addSubview(band.view)
         }
         panel.contentView = content
     }
@@ -33,15 +30,12 @@ final class SidePiece {
 
     func hide() {
         resetWork?.cancel()
-        stripResetWork?.cancel()
-        topResetWork?.cancel()
-        bottomStrip.isHidden = true
-        topStrip.isHidden = true
+        for band in [bottomBand, middleBand, topBand] { band.clear() }
         panel.backgroundColor = restColor
         panel.orderOut(nil)
     }
 
-    /// Turns `color` for `duration` seconds. A new blink restarts the timer.
+    /// Turns the whole block `color` for `duration` seconds. A new blink restarts the timer.
     func blink(_ color: NSColor, for duration: TimeInterval) {
         resetWork?.cancel()
         panel.backgroundColor = color
@@ -53,36 +47,50 @@ final class SidePiece {
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
     }
 
-    /// Fills the bottom `fraction` of the piece with `color` for `duration` seconds,
-    /// leaving the rest of the piece as it is. A new blink restarts the timer.
+    /// Fills the bottom `fraction` of the block.
     func blinkBottom(_ color: NSColor, fraction: CGFloat, for duration: TimeInterval) {
-        stripResetWork?.cancel()
-        guard let bounds = panel.contentView?.bounds else { return }
+        bottomBand.blink(color, from: 0, to: fraction, in: panel.contentView, for: duration)
+    }
+
+    /// Fills the band between `from` and `to`, measured as fractions of the height from the bottom.
+    func blinkMiddle(_ color: NSColor, from: CGFloat, to: CGFloat, for duration: TimeInterval) {
+        middleBand.blink(color, from: from, to: to, in: panel.contentView, for: duration)
+    }
+
+    /// Fills the top `fraction` of the block.
+    func blinkTop(_ color: NSColor, fraction: CGFloat, for duration: TimeInterval) {
+        topBand.blink(color, from: 1 - fraction, to: 1, in: panel.contentView, for: duration)
+    }
+}
+
+/// A horizontal band inside a block that flashes a color and then disappears.
+private final class Band {
+    let view = NSView()
+    private var resetWork: DispatchWorkItem?
+
+    init() {
+        view.wantsLayer = true
+        view.isHidden = true
+    }
+
+    /// `from` and `to` are fractions of the block's height, measured from the bottom.
+    /// A new blink restarts the timer.
+    func blink(_ color: NSColor, from: CGFloat, to: CGFloat, in container: NSView?, for duration: TimeInterval) {
+        resetWork?.cancel()
+        guard let bounds = container?.bounds else { return }
         // NSView's origin is bottom-left, so y = 0 is the bottom edge.
-        bottomStrip.frame = NSRect(x: 0, y: 0, width: bounds.width, height: bounds.height * fraction)
-        bottomStrip.layer?.backgroundColor = color.cgColor
-        bottomStrip.isHidden = false
-        let work = DispatchWorkItem { [weak self] in
-            self?.bottomStrip.isHidden = true
-        }
-        stripResetWork = work
+        view.frame = NSRect(x: 0, y: bounds.height * from,
+                            width: bounds.width, height: bounds.height * (to - from))
+        view.layer?.backgroundColor = color.cgColor
+        view.isHidden = false
+        let work = DispatchWorkItem { [weak self] in self?.view.isHidden = true }
+        resetWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
     }
 
-    /// Fills the top `fraction` of the piece with `color` for `duration` seconds,
-    /// leaving the rest of the piece as it is. A new blink restarts the timer.
-    func blinkTop(_ color: NSColor, fraction: CGFloat, for duration: TimeInterval) {
-        topResetWork?.cancel()
-        guard let bounds = panel.contentView?.bounds else { return }
-        let height = bounds.height * fraction
-        topStrip.frame = NSRect(x: 0, y: bounds.height - height, width: bounds.width, height: height)
-        topStrip.layer?.backgroundColor = color.cgColor
-        topStrip.isHidden = false
-        let work = DispatchWorkItem { [weak self] in
-            self?.topStrip.isHidden = true
-        }
-        topResetWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
+    func clear() {
+        resetWork?.cancel()
+        view.isHidden = true
     }
 }
 

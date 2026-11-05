@@ -11,6 +11,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let spaceFraction: CGFloat = 1.0 / 5.0 // space fills the bottom 1/5 of each piece
     private let backspaceColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let backspaceFraction: CGFloat = 1.0 / 5.0 // backspace fills the top 1/5 of each piece
+    private let doubleColor = NSColor(srgbRed: 0, green: 1, blue: 1, alpha: 1) // #00ffff
+    private let doubleBand: (from: CGFloat, to: CGFloat) = (1.0 / 5.0, 4.0 / 5.0) // middle 3/5 of the block
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
     private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space within this long
@@ -31,6 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var alarmLink: AnyObject? // CADisplayLink on macOS 14+
     private var alarmTimer: Timer?    // fallback on older macOS
     private var alarmFrame = 0
+    private var lastKeyCode: Int64?
     private var alarmStart: CFTimeInterval = 0
     private var isOn = false
 
@@ -53,12 +56,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hesitationWork?.cancel()
         hesitationWork = nil
         stopAlarm()
+        // Same key as the previous press (auto-repeat is already filtered out).
+        let isDouble = keyCode == lastKeyCode
+        lastKeyCode = keyCode
         guard isOn, let action = KeyMap.action(for: keyCode) else { return }
         switch action {
         case .left:
             leftPiece.blink(handColor, for: blinkDuration)
+            if isDouble {
+                leftPiece.blinkMiddle(doubleColor, from: doubleBand.from, to: doubleBand.to, for: blinkDuration)
+            }
         case .right:
             rightPiece.blink(handColor, for: blinkDuration)
+            if isDouble {
+                rightPiece.blinkMiddle(doubleColor, from: doubleBand.from, to: doubleBand.to, for: blinkDuration)
+            }
         case .space:
             leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
             rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
