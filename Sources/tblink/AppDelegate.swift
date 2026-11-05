@@ -9,7 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let handColor = NSColor(srgbRed: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
     private let spaceColor = NSColor(srgbRed: 1, green: 0, blue: 1, alpha: 1) // #ff00ff
     private let spaceFraction: CGFloat = 1.0 / 5.0 // space fills the bottom 1/5 of each piece
-    private let backspaceColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
+    private let backspaceColor = NSColor(srgbRed: 0, green: 0, blue: 1, alpha: 1) // #0000ff
     private let backspaceFraction: CGFloat = 1.0 / 5.0 // backspace fills the top 1/5 of each piece
     private let doubleColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00, both side strips
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000

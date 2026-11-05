@@ -10,7 +10,7 @@ Two green (#00ff00) blocks sit on either side of the MacBook camera notch and bl
 | Space | bottom 1/5 of both blocks blinks magenta |
 | `.` `,` `?` or `!` right after a space ("word ,") | the 15 pt side strips blink yellow (#ffff00); the block doesn't blink pink |
 | Apostrophe `'` | the 15 pt strip right of the right block blinks cyan (#00ffff) |
-| Backspace | top 1/5 of both blocks blinks red (#ff0000) |
+| Backspace | top 1/5 of both blocks blinks blue (#0000ff) |
 | Any pause of 0.15 s after a key (mid-word, after space, punctuation or backspace) | hesitation alarm: the 15 pt red (#ff0000) side strips blink 2 frames on, 2 frames off until your next key or for at most 1 s. Never after Return, Enter, Tab, arrows or Home/End/Page keys |
 
 Each blink lasts 1/20 s. Holding a key blinks once (no auto-repeat).
