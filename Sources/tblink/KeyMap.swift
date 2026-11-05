@@ -13,6 +13,14 @@ enum KeyMap {
     static let period: Int64 = 47
     static let comma: Int64 = 43
     static let apostrophe: Int64 = 39
+    static let slash: Int64 = 44   // ? with Shift
+    static let one: Int64 = 18     // ! with Shift
+
+    /// . , ? ! : punctuation that shouldn't come right after a space.
+    static func isEndPunctuation(_ keyCode: Int64, shift: Bool) -> Bool {
+        if keyCode == period || keyCode == comma { return true }
+        return shift && (keyCode == slash || keyCode == one)
+    }
 
     /// Left-hand keys: ` 1-6, Tab Q W E R T Y, A S D F G, Z X C V B (and the ISO § key).
     static let leftHand: Set<Int64> = [

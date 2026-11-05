@@ -7,9 +7,9 @@ final class KeyTap {
     private var tap: CFMachPort?
     private var source: CFRunLoopSource?
     private var enabled = false
-    private let handler: (Int64) -> Void
+    private let handler: (_ keyCode: Int64, _ shift: Bool) -> Void
 
-    init(handler: @escaping (Int64) -> Void) {
+    init(handler: @escaping (_ keyCode: Int64, _ shift: Bool) -> Void) {
         self.handler = handler
     }
 
@@ -60,7 +60,7 @@ final class KeyTap {
         case .keyDown:
             // First press only: skip auto-repeat while a key is held.
             guard event.getIntegerValueField(.keyboardEventAutorepeat) == 0 else { return }
-            handler(event.getIntegerValueField(.keyboardEventKeycode))
+            handler(event.getIntegerValueField(.keyboardEventKeycode), event.flags.contains(.maskShift))
         default:
             break
         }

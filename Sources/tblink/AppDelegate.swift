@@ -11,21 +11,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let spaceFraction: CGFloat = 1.0 / 5.0 // space fills the bottom 1/5 of each piece
     private let backspaceColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let backspaceFraction: CGFloat = 1.0 / 5.0 // backspace fills the top 1/5 of each piece
-    private let doubleColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00, both whole blocks
+    private let doubleColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00, both side strips
     private let echoColor = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
     private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows space or backspace within this long
     private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
     private let echoMaxDuration: TimeInterval = 1 // ...until the next key, or 1 s, whichever comes first
     private let typoColor = NSColor(srgbRed: 1, green: 1, blue: 0, alpha: 1) // #ffff00
-    private let typoDuration: TimeInterval = 0.15 // "space then . or ," lights the side strips this long
+    private let typoDuration: TimeInterval = 0.15 // "space then . , ? !" lights the side strips this long
     private let apostropheColor = NSColor(srgbRed: 0, green: 1, blue: 1, alpha: 1) // #00ffff, right side strip
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
     private lazy var rightPiece = SidePiece(restColor: restColor)
     private lazy var leftEcho = FlashStrip(color: echoColor)
     private lazy var rightEcho = FlashStrip(color: echoColor)
-    private lazy var keyTap = KeyTap { [weak self] keyCode in self?.handle(keyCode) }
+    private lazy var keyTap = KeyTap { [weak self] keyCode, shift in self?.handle(keyCode, shift: shift) }
 
     private var statusItem: NSStatusItem?
     private let toggleItem = NSMenuItem(title: "On", action: #selector(AppDelegate.toggle), keyEquivalent: "")
@@ -37,8 +37,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var alarmFrame = 0
     private var lastKeyCode: Int64?
     private var alarmStart: CFTimeInterval = 0
-    private var typoWork: DispatchWorkItem?
-    private var apostropheWork: DispatchWorkItem?
     private var isOn = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -55,7 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Key handling
 
-    private func handle(_ keyCode: Int64) {
+    private func handle(_ keyCode: Int64, shift: Bool) {
         // Any key press ends the wait after space, and stops the alarm if it's going.
         hesitationWork?.cancel()
         hesitationWork = nil
@@ -65,18 +63,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let afterSpace = lastKeyCode == KeyMap.space
         lastKeyCode = keyCode
         guard isOn, let action = KeyMap.action(for: keyCode) else { return }
-        // "word ," or "word ." : punctuation right after a space is almost always a typo.
-        if afterSpace && (keyCode == KeyMap.period || keyCode == KeyMap.comma) {
-            flashTypoCue()
-        }
-        if keyCode == KeyMap.apostrophe {
-            flashApostrophe()
-        }
         switch action {
         case .left:
-            blinkHand(leftPiece, isDouble: isDouble)
+            leftPiece.blink(handColor, for: blinkDuration)
         case .right:
-            blinkHand(rightPiece, isDouble: isDouble)
+            rightPiece.blink(handColor, for: blinkDuration)
         case .space:
             leftPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
             rightPiece.blinkBottom(spaceColor, fraction: spaceFraction, for: blinkDuration)
@@ -86,16 +77,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             rightPiece.blinkTop(backspaceColor, fraction: backspaceFraction, for: blinkDuration)
             armHesitationAlarm()
         }
-    }
 
-    /// A hand key blinks the whole block on its side pink. The second press of a
-    /// double instead blinks both whole blocks yellow.
-    private func blinkHand(_ piece: SidePiece, isDouble: Bool) {
-        if isDouble {
-            leftPiece.blink(doubleColor, for: blinkDuration)
-            rightPiece.blink(doubleColor, for: blinkDuration)
-        } else {
-            piece.blink(handColor, for: blinkDuration)
+        // Side-strip cues (the 15 pt strips outside the blocks).
+        if afterSpace && KeyMap.isEndPunctuation(keyCode, shift: shift) {
+            // "word ," / "word ." / "word ?" / "word !": almost always a typo.
+            leftEcho.flash(typoColor, for: typoDuration)
+            rightEcho.flash(typoColor, for: typoDuration)
+        } else if isDouble && (action == .left || action == .right) {
+            // Same letter/number key twice in a row.
+            leftEcho.flash(doubleColor, for: blinkDuration)
+            rightEcho.flash(doubleColor, for: blinkDuration)
+        }
+        if keyCode == KeyMap.apostrophe {
+            rightEcho.flash(apostropheColor, for: blinkDuration)
         }
     }
 
@@ -118,10 +112,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// synced to the screen's refresh, until the next key press or `echoMaxDuration`.
     private func startAlarm() {
         stopAlarm()
-        typoWork?.cancel()
-        typoWork = nil
-        apostropheWork?.cancel()
-        apostropheWork = nil
+        leftEcho.cancelFlash()
+        rightEcho.cancelFlash()
         setEchoColor(echoColor)
         alarmFrame = 0
         alarmStart = CACurrentMediaTime()
@@ -142,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var alarmRunning: Bool { alarmLink != nil || alarmTimer != nil }
 
     private func stopAlarm() {
-        // Leave the strips alone if they're showing the typo cue instead.
+        // Leave the strips alone if they're showing a flash instead.
         guard alarmRunning else { return }
         if #available(macOS 14.0, *) {
             (alarmLink as? CADisplayLink)?.invalidate()
@@ -166,43 +158,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         alarmFrame += 1
         setEchoLit((alarmFrame / echoFramesPerToggle) % 2 == 0)
-    }
-
-    /// Lights the side strips solid yellow for typoDuration. Typing on doesn't cut it short.
-    private func flashTypoCue() {
-        stopAlarm()
-        apostropheWork?.cancel()
-        apostropheWork = nil
-        typoWork?.cancel()
-        setEchoColor(typoColor)
-        setEchoLit(true)
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            self.typoWork = nil
-            self.setEchoLit(false)
-            self.setEchoColor(self.echoColor)
-        }
-        typoWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + typoDuration, execute: work)
-    }
-
-    /// Blinks the right side strip cyan for blinkDuration on every apostrophe.
-    private func flashApostrophe() {
-        apostropheWork?.cancel()
-        rightEcho.setColor(apostropheColor)
-        rightEcho.setLit(true)
-        let work = DispatchWorkItem { [weak self] in
-            guard let self else { return }
-            self.apostropheWork = nil
-            if self.typoWork != nil {
-                self.rightEcho.setColor(self.typoColor) // yellow typo cue is still running
-            } else {
-                self.rightEcho.setLit(false)
-                self.rightEcho.setColor(self.echoColor)
-            }
-        }
-        apostropheWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + blinkDuration, execute: work)
     }
 
     private func setEchoColor(_ color: NSColor) {

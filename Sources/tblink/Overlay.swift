@@ -88,12 +88,14 @@ private final class Band {
     }
 }
 
-/// A strip that is normally see-through and lights up when told to.
+/// A strip that is normally see-through and lights up when told to: either a timed
+/// flash, or switched directly (the hesitation alarm does that every couple of frames).
 /// It stays on screen while tblink is on and switches by opacity,
 /// which is cheap enough to toggle every couple of frames.
 final class FlashStrip {
     private let panel: NSPanel
     private var isLit = false
+    private var flashWork: DispatchWorkItem?
 
     init(color: NSColor) {
         panel = makeOverlayPanel(color: color)
@@ -108,8 +110,27 @@ final class FlashStrip {
     func show() { panel.orderFrontRegardless() }
 
     func hide() {
+        cancelFlash()
         setLit(false)
         panel.orderOut(nil)
+    }
+
+    /// Lights the strip `color` for `duration` seconds. A new flash replaces the old one.
+    func flash(_ color: NSColor, for duration: TimeInterval) {
+        flashWork?.cancel()
+        setColor(color)
+        setLit(true)
+        let work = DispatchWorkItem { [weak self] in
+            self?.flashWork = nil
+            self?.setLit(false)
+        }
+        flashWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
+    }
+
+    func cancelFlash() {
+        flashWork?.cancel()
+        flashWork = nil
     }
 
     func setColor(_ color: NSColor) {
