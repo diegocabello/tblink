@@ -7,7 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let restColor = NSColor.systemGreen
     private let handColor = NSColor.magenta
     private let spaceColor = NSColor.magenta
-    private let spaceFraction: CGFloat = 2.0 / 5.0 // space fills the bottom 2/5 of each piece
+    private let spaceFraction: CGFloat = 1.0 / 5.0 // space fills the bottom 1/5 of each piece
     private let backspaceColor = NSColor.systemBlue
 
     private lazy var leftPiece = SidePiece(restColor: restColor)
