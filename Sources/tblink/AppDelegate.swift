@@ -6,7 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let blinkDuration: TimeInterval = 0.05 // 1/20 s
     private let restColor = NSColor.systemYellow
     private let handColor = NSColor.systemRed
-    private let spaceColor = NSColor.systemOrange
+    private let spaceColor = NSColor.systemGreen
     private let backspaceColor = NSColor.systemBlue
 
     private lazy var leftPiece = SidePiece(restColor: restColor)

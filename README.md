@@ -6,7 +6,7 @@ Two yellow blocks sit on either side of the MacBook camera notch and blink as yo
 | --- | --- |
 | Left-hand key | left block blinks red |
 | Right-hand key | right block blinks red |
-| Space | both blink orange |
+| Space | both blink green |
 | Backspace | right block blinks blue |
 
 Each blink lasts 1/20 s. Holding a key blinks once (no auto-repeat).
