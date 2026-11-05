@@ -6,7 +6,7 @@ Two green (#00ff00) blocks sit on either side of the MacBook camera notch and bl
 | --- | --- |
 | Left-hand key | left block blinks magenta (#ff00ff) |
 | Right-hand key | right block blinks magenta |
-| Space | bottom 1/5 of both blocks blinks magenta. If you don't press another key within 0.1 s, a 15 pt red (#ff0000) strip flashes on the outer edge of each block (hesitation alarm) |
+| Space | bottom 1/5 of both blocks blinks magenta. If you don't press another key within 0.15 s, a 15 pt red (#ff0000) strip flashes on the outer edge of each block (hesitation alarm) |
 | Backspace | right block blinks blue |
 
 Each blink lasts 1/20 s. Holding a key blinks once (no auto-repeat).
