@@ -8,6 +8,8 @@ final class SidePiece {
     private var resetWork: DispatchWorkItem?
     private let bottomBand = Band()
     private let topBand = Band()
+    /// Covers the whole block, above every band, during the hesitation alarm.
+    private let alarmCover = NSView()
 
     init(restColor: NSColor) {
         self.restColor = restColor
@@ -18,7 +20,20 @@ final class SidePiece {
         for band in [bottomBand, topBand] {
             content.addSubview(band.view)
         }
+        alarmCover.wantsLayer = true
+        alarmCover.isHidden = true
+        alarmCover.autoresizingMask = [.width, .height]
+        content.addSubview(alarmCover)
         panel.contentView = content
+    }
+
+    /// Turns the whole block `color` (on top of everything else) or back off.
+    func setAlarm(_ color: NSColor, lit: Bool) {
+        if lit {
+            alarmCover.frame = panel.contentView?.bounds ?? .zero
+            alarmCover.layer?.backgroundColor = color.cgColor
+        }
+        alarmCover.isHidden = !lit
     }
 
     func place(at frame: NSRect) {
@@ -30,6 +45,7 @@ final class SidePiece {
     func hide() {
         resetWork?.cancel()
         for band in [bottomBand, topBand] { band.clear() }
+        alarmCover.isHidden = true
         panel.backgroundColor = restColor
         panel.orderOut(nil)
     }

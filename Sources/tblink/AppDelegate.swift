@@ -237,9 +237,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rightEcho.setColor(color)
     }
 
+    /// Hesitation alarm on/off: the side strips and both whole blocks go red together.
     private func setEchoLit(_ lit: Bool) {
         leftEcho.setLit(lit)
         rightEcho.setLit(lit)
+        leftPiece.setAlarm(echoColor, lit: lit)
+        rightPiece.setAlarm(echoColor, lit: lit)
     }
 
     // MARK: - On / off
