@@ -1,13 +1,12 @@
 import AppKit
 
 /// One colored block beside the notch. The whole block can blink, and so can
-/// horizontal bands inside it (bottom, middle, top), each on its own timer.
+/// horizontal bands inside it (bottom, top), each on its own timer.
 final class SidePiece {
     private let panel: NSPanel
     private let restColor: NSColor
     private var resetWork: DispatchWorkItem?
     private let bottomBand = Band()
-    private let middleBand = Band()
     private let topBand = Band()
 
     init(restColor: NSColor) {
@@ -16,7 +15,7 @@ final class SidePiece {
 
         let content = NSView()
         content.wantsLayer = true
-        for band in [bottomBand, middleBand, topBand] {
+        for band in [bottomBand, topBand] {
             content.addSubview(band.view)
         }
         panel.contentView = content
@@ -30,7 +29,7 @@ final class SidePiece {
 
     func hide() {
         resetWork?.cancel()
-        for band in [bottomBand, middleBand, topBand] { band.clear() }
+        for band in [bottomBand, topBand] { band.clear() }
         panel.backgroundColor = restColor
         panel.orderOut(nil)
     }
@@ -47,21 +46,9 @@ final class SidePiece {
         DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: work)
     }
 
-    /// Ends a whole-block blink early, back to the rest color.
-    func endBlink() {
-        resetWork?.cancel()
-        resetWork = nil
-        panel.backgroundColor = restColor
-    }
-
     /// Fills the bottom `fraction` of the block.
     func blinkBottom(_ color: NSColor, fraction: CGFloat, for duration: TimeInterval) {
         bottomBand.blink(color, from: 0, to: fraction, in: panel.contentView, for: duration)
-    }
-
-    /// Fills the band between `from` and `to`, measured as fractions of the height from the bottom.
-    func blinkMiddle(_ color: NSColor, from: CGFloat, to: CGFloat, for duration: TimeInterval) {
-        middleBand.blink(color, from: from, to: to, in: panel.contentView, for: duration)
     }
 
     /// Fills the top `fraction` of the block.
