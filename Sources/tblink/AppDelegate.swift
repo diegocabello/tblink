@@ -17,7 +17,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let echoColor = NSColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1) // #ff0000
     private let echoWidth: CGFloat = 15
     private let echoDelay: TimeInterval = 0.15 // red strips start if no key follows within this long (never after Return, Tab or arrows)
-    private let echoFramesPerToggle = 2 // red strips: 2 frames on, 2 frames off
     private let echoMaxDuration: TimeInterval = 1 // ...until the next key, or 1 s, whichever comes first
     private let typoColor = NSColor(displayP3Red: 1, green: 1, blue: 0, alpha: 1) // #ffff00
     private let typoDuration: TimeInterval = 0.05 // "space then . , ? !" lights the side strips this long
@@ -37,7 +36,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hesitationWork: DispatchWorkItem?
     private var alarmLink: AnyObject? // CADisplayLink on macOS 14+
     private var alarmTimer: Timer?    // fallback on older macOS
-    private var alarmFrame = 0
     private var lastKeyCode: Int64?
     private var lastShift = false
     private var alarmStart: CFTimeInterval = 0
@@ -166,7 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Hesitation alarm, armed by every key except Return, Tab and navigation: if no key follows within
-    /// echoDelay, the red strips blink until the next key press (or for at most
+    /// echoDelay, everything goes solid red until the next key press (or for at most
     /// echoMaxDuration).
     private func armHesitationAlarm() {
         let work = DispatchWorkItem { [weak self] in
@@ -180,17 +178,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Hesitation alarm
 
-    /// Blinks the red strips: `echoFramesPerToggle` frames on, the same number off,
-    /// synced to the screen's refresh, until the next key press or `echoMaxDuration`.
+    /// Turns the strips and blocks solid red until the next key press or `echoMaxDuration`.
+    /// The display link just checks the time limit once per frame.
     private func startAlarm() {
         stopAlarm()
         leftEcho.cancelFlash()
         rightEcho.cancelFlash()
         setEchoColor(echoColor)
-        alarmFrame = 0
         alarmStart = CACurrentMediaTime()
         setEchoLit(true)
-        // The blocks go solid red for the whole alarm; only the side strips blink.
+        // Everything goes solid red for the whole alarm: strips and blocks.
         leftPiece.setAlarm(echoColor, lit: true)
         rightPiece.setAlarm(echoColor, lit: true)
         if #available(macOS 14.0, *), let screen = NotchLayout.screen {
@@ -233,8 +230,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             stopAlarm()
             return
         }
-        alarmFrame += 1
-        setEchoLit((alarmFrame / echoFramesPerToggle) % 2 == 0)
     }
 
     private func setEchoColor(_ color: NSColor) {
@@ -242,7 +237,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         rightEcho.setColor(color)
     }
 
-    /// Blinks the side strips during the hesitation alarm.
+    /// Lights or clears the side strips for the hesitation alarm.
     private func setEchoLit(_ lit: Bool) {
         leftEcho.setLit(lit)
         rightEcho.setLit(lit)
